@@ -1,8 +1,9 @@
 import sass from "sass";
-import fs from "node:fs";
 import {mkdir, readdir} from "node:fs/promises";
 import path from "node:path";
 import {exists, isDir, writeFile} from "./util/fs";
+import yargs from 'yargs';
+import {hideBin} from "yargs/helpers";
 
 interface SassCompilerConfig {
     entries: CompileEntry[];
@@ -14,7 +15,7 @@ interface CompileEntry {
 }
 
 const loadConfig = async (): Promise<SassCompilerConfig> => {
-    const configPath = path.join(__dirname, 'sass-compiler.config.js');
+    const configPath = path.join(process.cwd(), 'sass-compiler.config.js');
     if (!await exists(configPath)) {
         return Promise.reject(new Error('Configuration file not found'));
     }
@@ -23,12 +24,12 @@ const loadConfig = async (): Promise<SassCompilerConfig> => {
 
 const processEntry = async (entry: CompileEntry): Promise<void> => {
     try {
-        const baseDir = `${__dirname}/${entry.baseDir}`;
-        const outputDir = `${__dirname}/${entry.outputDir}`;
-        if (!await isDir(baseDir)) {
+        const baseDir = `${process.cwd()}/${entry.baseDir}`;
+        const outputDir = `${process.cwd()}/${entry.outputDir}`;
+        if (!await exists(baseDir) && !await isDir(baseDir)) {
             return Promise.reject(new Error(`Base directory ${baseDir} not found`));
         }
-        if (!await isDir(outputDir)) {
+        if (!await exists(outputDir)) {
             await mkdir(outputDir, {
                 recursive: true
             });
@@ -50,16 +51,17 @@ const processDir = async (dir: string, outputDir: string): Promise<void> => {
         if (await isDir(fullPath)) {
             await processDir(fullPath, path.join(outputDir, file));
         } else {
-            await processFile(fullPath);
+            await processFile(fullPath, outputDir);
         }
     }));
 }
 
-const processFile = async (file: string): Promise<void> => {
+const processFile = async (file: string, outputDir: string): Promise<void> => {
     const ext = path.extname(file);
     if (ext === '.scss' || ext === '.sass') {
+        const filename = path.basename(file);
         const {css} = sass.compile(file);
-        const outFile = file.replace(ext, '.css');
+        const outFile = path.join(outputDir, filename.replace(ext, '.css'));
         await writeFile(outFile, css);
     }
 }
@@ -72,6 +74,12 @@ const main = async (): Promise<void> => {
     // Compile all entries
     await Promise.all(config.entries.map(processEntry));
 }
+
+
+const args = yargs(hideBin(process.argv)).parseSync();
+
+console.log(args.argv);
+
 
 main().then(() => {
     process.exit(0);

@@ -24,7 +24,9 @@ beforeAll(async () => {
 })
 
 const run = () => {
-    const child = spawn("node", [executable]);
+    const child = spawn("node", [executable], {
+        cwd: tmpDir
+    });
     return new Promise((resolve: Function) => {
 
         child.stdout.on('data', (data) => {
