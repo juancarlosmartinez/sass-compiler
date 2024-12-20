@@ -1,5 +1,6 @@
 import path from "node:path";
 import {exists} from "../util/fs";
+import {CompilerOptions} from "../options/options";
 
 const CONFIG_FILE_NAME = 'sass-compiler.config.js';
 
@@ -23,8 +24,11 @@ export interface CompileEntry {
     outputDir: string;
 }
 
-export const loader = async (): Promise<SassCompilerConfig> => {
-    const configPath = path.join(process.cwd(), CONFIG_FILE_NAME);
+export const loader = async (options: CompilerOptions): Promise<SassCompilerConfig> => {
+    if (options.config && !await exists(options.config)) {
+        return Promise.reject(new Error(`Configuration file not found: ${options.config}`));
+    }
+    const configPath =  path.join(process.cwd(), options.config ?? CONFIG_FILE_NAME);
 
     let config: SassCompilerConfig;
 
