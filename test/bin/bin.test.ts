@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import {copyFile, access} from "node:fs/promises";
-import {spawn} from "node:child_process";
+import {ChildProcess, ChildProcessWithoutNullStreams, spawn} from "node:child_process";
 
 let tmpDir: string;
 let executable: string;
@@ -24,10 +24,50 @@ beforeAll(async () => {
     ])
 })
 
-const run = () => {
-    const child = spawn("node", [executable], {
+describe("Compile", () => {
+    it("should compile", async () => {
+        const code = await run();
+        expect(code).toBe(0);
+
+        const existsCSSFile = await access(path.join(tmpDir, 'test.css'), fs.constants.F_OK).then(() => true).catch(() => false);
+        expect(existsCSSFile).toBe(true);
+    });
+
+    it("should delete css file", async () => {
+        let child = await run({
+            watch: true
+        }) as ChildProcess;
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const cssPath = path.join(tmpDir, 'test.css');
+        const scssPath = path.join(tmpDir, 'test.scss');
+
+        const existsCSSFile = await access(cssPath, fs.constants.F_OK).then(() => true).catch(() => false);
+        expect(existsCSSFile).toBe(true);
+
+        expect(fs.existsSync(scssPath)).toBe(true);
+        fs.unlinkSync(scssPath);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        expect(fs.existsSync(scssPath)).toBe(false);
+        expect(fs.existsSync(cssPath)).toBe(false);
+
+        child.kill();
+    });
+});
+
+const run = ({watch}: {watch?: boolean} = {}): Promise<ChildProcessWithoutNullStreams|number> => {
+
+    const nodeArgs = [executable];
+
+    if (watch) {
+        nodeArgs.push('--watch');
+    }
+
+    const child = spawn("node", nodeArgs, {
         cwd: tmpDir
     });
+
     return new Promise((resolve: Function) => {
 
         child.stdout.on('data', (data) => {
@@ -36,23 +76,16 @@ const run = () => {
         child.stdout.on('error', (data) => {
             console.log(data.toString());
         });
-        child.on('exit', (code) => {
-            resolve(code);
-        });
+
+        if (watch) {
+            resolve(child);
+        } else {
+            child.on('exit', (code) => {
+                resolve(code);
+            });
+        }
     });
 }
-
-describe("Compile", () => {
-    it("should compile", async () => {
-        const code = await run();
-        expect(code).toBe(0);
-
-        // const css = fs.readFileSync(path.join(__dirname, 'test.css')).toString();
-        console.log(path.join(tmpDir, 'test.css'));
-        const existsCSSFile = await access(path.join(tmpDir, 'test.css'), fs.constants.F_OK).then(() => true).catch(() => false);
-        expect(existsCSSFile).toBe(true);
-    });
-});
 
 
 afterAll(async () => {

@@ -6,6 +6,7 @@ import {exists, isDir, writeFile} from "../util/fs";
 import {mkdir, readdir} from "node:fs/promises";
 import {CompileEntry, SassCompilerConfig} from "../config/config";
 import fs from "node:fs";
+import {log} from "../util/log";
 
 export class Compiler {
     /* STATIC */
@@ -24,8 +25,9 @@ export class Compiler {
      */
     private async processEntry(entry: CompileEntry): Promise<void> {
         try {
-            const baseDir = `${process.cwd()}/${entry.baseDir}`;
-            const outputDir = `${process.cwd()}/${entry.outputDir}`;
+            const baseDir = path.join(process.cwd(), entry.baseDir);
+            const outputDir = path.join(process.cwd(), entry.outputDir);
+
             if (!await exists(baseDir) && !await isDir(baseDir)) {
                 return Promise.reject(new Error(`Base directory ${baseDir} not found`));
             }
@@ -36,12 +38,14 @@ export class Compiler {
             }
 
             if (this.options?.watch) {
+                console.log(`Watching directory ${baseDir}...`);
                 chokidar.watch(baseDir, {
                     ignored: (file, _stats) => !!_stats && _stats?.isFile() && !file.endsWith('.scss') && !file.endsWith('.sass'),
                     persistent: true,
                     interval: 100,
-                    depth: 5,
+                    depth: 10,
                 }).on('all', async (event, watchPath) => {
+                    log(`File ${watchPath} has been ${event}`);
                     switch (event) {
                         case 'add':
                         case 'change':
@@ -50,7 +54,7 @@ export class Compiler {
                             });
                             break;
                         case 'unlink':
-                            const idx = watchPath.indexOf(process.cwd());
+                            const idx = watchPath.indexOf(baseDir);
                             if (idx >= 0) {
                                 const fileToDelete = path.join(outputDir, watchPath.substring(idx + process.cwd().length).replace('.scss', '.css'));
                                 fs.unlinkSync(fileToDelete);
