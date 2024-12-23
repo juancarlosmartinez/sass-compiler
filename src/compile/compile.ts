@@ -49,27 +49,32 @@ export class Compiler {
                     switch (event) {
                         case 'add':
                         case 'change':
-                            await this.processDir(baseDir, outputDir).catch(() => {
+                        case 'unlink':
+                            await this.processDirs(baseDir, outputDir).catch(() => {
                                 return Promise.reject(new Error(`Error processing directory ${entry.baseDir}`));
                             });
-                            break;
-                        case 'unlink':
-                            const idx = watchPath.indexOf(baseDir);
-                            if (idx >= 0) {
-                                const fileToDelete = path.join(outputDir, watchPath.substring(idx + process.cwd().length).replace('.scss', '.css'));
-                                fs.unlinkSync(fileToDelete);
-                            }
                             break;
                         }
                     });
             }
 
-            await this.processDir(baseDir, outputDir).catch(() => {
+            await this.processDirs(baseDir, outputDir).catch(() => {
                 return Promise.reject(new Error(`Error processing directory ${entry.baseDir}`));
             });
         } catch (e) {
             console.error(`Error processing entry ${entry.baseDir}`, e);
         }
+    }
+
+    /**
+     * Process directories recursively.
+     * @param inputDir The input directory
+     * @param outputDir The output directory
+     * @private
+     */
+    private async processDirs(inputDir: string, outputDir: string): Promise<void> {
+        await this.processOutputDir(inputDir, outputDir);
+        await this.processDir(inputDir, outputDir);
     }
 
     /**
@@ -88,6 +93,26 @@ export class Compiler {
                 await this.processFile(fullPath, outputDir);
             }
         }));
+    }
+
+    /**
+     * Process the output directory and remove all CSS files that don't have a corresponding SCSS file.
+     * @param inputDir The input directory
+     * @param outputDir The output directory
+     * @private
+     */
+    private async processOutputDir(inputDir: string, outputDir: string): Promise<void> {
+        if (await exists(outputDir)) {
+            const files = await readdir(outputDir);
+            await Promise.all(files.map(async (file) => {
+                const fullPath = path.join(outputDir, file);
+                if (await isDir(fullPath)) {
+                    await this.processOutputDir(path.join(inputDir, file), fullPath);
+                } else if (file.endsWith('.css') && !await exists(path.join(inputDir, file.replace('.css', '.scss'))) && !await exists(path.join(inputDir, file.replace('.css', '.scss')))) {
+                    fs.unlinkSync(fullPath);
+                }
+            }));
+        }
     }
 
     /**

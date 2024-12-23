@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 
 const exists = async (file: string): Promise<boolean> => {
-    return fs.readFile(file).then(() => true).catch(() => false);
+    return fs.access(file).then(() => true).catch(() => false);
 }
 
 const writeFile = async (path: string, data: string) => {

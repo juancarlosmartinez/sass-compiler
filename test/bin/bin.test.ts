@@ -8,7 +8,7 @@ import {ChildProcess, ChildProcessWithoutNullStreams, spawn} from "node:child_pr
 let tmpDir: string;
 let executable: string;
 
-beforeAll(async () => {
+beforeEach(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sass-compiler'));
     executable = path.join(tmpDir, 'index.js');
     await Promise.all([
@@ -33,7 +33,7 @@ describe("Compile", () => {
         expect(existsCSSFile).toBe(true);
     });
 
-    it("should delete css file", async () => {
+    it("should delete css file - watch", async () => {
         let child = await run({
             watch: true
         }) as ChildProcess;
@@ -53,6 +53,22 @@ describe("Compile", () => {
         expect(fs.existsSync(cssPath)).toBe(false);
 
         child.kill();
+    });
+
+    it("should delete css file - initial", async () => {
+        const code = await run();
+        expect(code).toBe(0);
+
+        const existsCSSFile = await access(path.join(tmpDir, 'test.css'), fs.constants.F_OK).then(() => true).catch(() => false);
+        expect(existsCSSFile).toBe(true);
+
+        fs.unlinkSync(path.join(tmpDir, 'test.scss'));
+
+        const code2 = await run();
+        expect(code2).toBe(0);
+
+        const existsCSSFile2 = await access(path.join(tmpDir, 'test.css'), fs.constants.F_OK).then(() => true).catch(() => false);
+        expect(existsCSSFile2).toBe(false);
     });
 });
 
