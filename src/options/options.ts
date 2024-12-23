@@ -5,6 +5,7 @@ import fs from "node:fs";
 export interface CompilerOptions {
     config?: string;
     watch?: boolean;
+    verbose?: boolean;
 }
 
 export class Options implements CompilerOptions {
@@ -26,6 +27,10 @@ export class Options implements CompilerOptions {
                 'watch': {
                     describe: 'Watch for file changes',
                     type: 'boolean',
+                },
+                'verbose': {
+                    describe: 'Show more information',
+                    type: 'boolean',
                 }
             })
         ;
@@ -34,7 +39,8 @@ export class Options implements CompilerOptions {
 
         return new Options({
             config: args.config,
-            watch: args.watch
+            watch: args.watch,
+            verbose: args.verbose,
         });
     }
 
@@ -48,5 +54,9 @@ export class Options implements CompilerOptions {
 
     public get watch(): boolean {
         return this._data.watch ?? false;
+    }
+
+    public get verbose(): boolean {
+        return this._data.verbose ?? false;
     }
 }

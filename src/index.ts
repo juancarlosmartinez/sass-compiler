@@ -1,10 +1,12 @@
 import {loader} from "./config/config";
 import {Compiler} from "./compile/compile";
 import {Options} from "./options/options";
-
+import {Log} from "./util/log";
 
 const main = async (): Promise<void> => {
     const options = Options.build();
+
+    Log.init(options);
 
     // Load configuration file
     const config = await loader(options);
@@ -13,9 +15,6 @@ const main = async (): Promise<void> => {
 
     await compiler.compile(config);
 }
-
-
-
 
 main().then(() => {
 }).catch((err) => {

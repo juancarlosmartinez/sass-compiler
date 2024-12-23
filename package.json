@@ -1,6 +1,6 @@
 {
-  "name": "sass-compiler",
-  "version": "0.0.0",
+  "name": "node-sass-compiler",
+  "version": "0.0.1",
   "description": "A compiler for scss and sass files to css",
   "main": "dist/index.js",
   "types": "index.d.ts",
