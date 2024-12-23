@@ -7,7 +7,8 @@ const CONFIG_FILE_NAME = 'sass-compiler.config.js';
 
 const DEFAULT_ENTRY: CompileEntry = {
     baseDir: '.',
-    outputDir: '.'
+    outputDir: '.',
+    filenames: /^[a-zA-Z].+\.(scss|sass)$/
 }
 
 const DEFAULT_CONFIG: SassCompilerConfig = {
@@ -23,6 +24,7 @@ export interface SassCompilerConfig {
 export interface CompileEntry {
     baseDir: string;
     outputDir: string;
+    filenames: RegExp;
 }
 
 export const loader = async (options: CompilerOptions): Promise<SassCompilerConfig> => {
@@ -55,6 +57,9 @@ export const loader = async (options: CompilerOptions): Promise<SassCompilerConf
             }
             if (!entry.baseDir) {
                 entry.baseDir = DEFAULT_ENTRY.baseDir;
+            }
+            if (!entry.filenames) {
+                entry.filenames = DEFAULT_ENTRY.filenames;
             }
         });
 
