@@ -1,6 +1,5 @@
 import path from "node:path";
-import {mkdir, readdir} from "node:fs/promises";
-import fs from "node:fs";
+import {mkdir, readdir, unlink} from "node:fs/promises";
 
 import chokidar from "chokidar";
 import sass from "sass";
@@ -120,7 +119,9 @@ export class EntryCompiler {
                         return baseName == cssBaseName && this.matchFile(baseName);
                     });
                     if (!exists) {
-                        fs.unlinkSync(fullPath);
+                        await unlink(fullPath).catch(err => {
+                            console.error(`Error deleting file ${fullPath}: ${err}`);
+                        });
                     }
                 }
             }));
@@ -137,9 +138,14 @@ export class EntryCompiler {
         if (this.matchFile(path.basename(file))) {
             const ext = path.extname(file);
             const filename = path.basename(file);
-            const {css} = sass.compile(file);
-            const outFile = path.join(outputDir, filename.replace(ext, '.css'));
-            await writeFile(outFile, css);
+            try {
+                const {css} = sass.compile(file);
+                console.log(`Compiled successfully: ${file}`);
+                const outFile = path.join(outputDir, filename.replace(ext, '.css'));
+                await writeFile(outFile, css);
+            } catch (e) {
+                console.error(e);
+            }
         }
     }
 
