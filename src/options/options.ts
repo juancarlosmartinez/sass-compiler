@@ -48,8 +48,8 @@ export class Options implements CompilerOptions {
     private constructor(private readonly _data: CompilerOptions = {}) {
     }
 
-    public get config(): string {
-        return this._data.config ?? '';
+    public get config(): string|undefined {
+        return this._data.config;
     }
 
     public get watch(): boolean {

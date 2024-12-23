@@ -3,5 +3,6 @@
 .vscode/
 .npmrc
 dist
+coverage
 
 node_modules
