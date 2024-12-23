@@ -1,4 +1,4 @@
-import {Options} from "../src/options/options";
+import {Options} from "../../src/options/options";
 
 describe("Tests for compiler options", () => {
 

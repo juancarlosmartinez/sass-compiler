@@ -47,23 +47,23 @@ export const loader = async (options: CompilerOptions): Promise<SassCompilerConf
 
         log(`Configuration file found, using user configuration: ${JSON.stringify(userConfig)}`);
 
-        if (userConfig.entries.length === 0) {
+        if (!userConfig.entries || userConfig.entries.length === 0) {
             config = DEFAULT_CONFIG;
+        } else {
+            userConfig.entries.forEach(entry => {
+                if (!entry.outputDir) {
+                    entry.outputDir = entry.baseDir || DEFAULT_ENTRY.outputDir;
+                }
+                if (!entry.baseDir) {
+                    entry.baseDir = DEFAULT_ENTRY.baseDir;
+                }
+                if (!entry.filenames) {
+                    entry.filenames = DEFAULT_ENTRY.filenames;
+                }
+            });
+
+            config = userConfig;
         }
-
-        userConfig.entries.forEach(entry => {
-            if (!entry.outputDir) {
-                entry.outputDir = entry.baseDir || DEFAULT_ENTRY.outputDir;
-            }
-            if (!entry.baseDir) {
-                entry.baseDir = DEFAULT_ENTRY.baseDir;
-            }
-            if (!entry.filenames) {
-                entry.filenames = DEFAULT_ENTRY.filenames;
-            }
-        });
-
-        config = userConfig;
 
         log(`Configuration file loaded: ${JSON.stringify(config)}`);
     }
