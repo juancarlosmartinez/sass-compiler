@@ -1,7 +1,7 @@
 import path from "node:path";
-import {mkdir, readdir, unlink} from "node:fs/promises";
+import {mkdir, readdir, rm, unlink} from "node:fs/promises";
 
-import chokidar from "chokidar";
+import chokidar, {FSWatcher} from "chokidar";
 import sass from "sass";
 
 import {log} from "../util/log";
@@ -19,6 +19,7 @@ export class EntryCompiler {
     private readonly baseDir: string;
     private readonly outputDir: string;
     private readonly filenames: RegExp;
+    private _watcher: FSWatcher | null = null;
     private constructor(entry: CompileEntry, private readonly options?: CompilerOptions) {
         this.baseDir = entry.baseDir;
         this.outputDir = entry.outputDir;
@@ -40,32 +41,71 @@ export class EntryCompiler {
             await mkdir(outputDir, {
                 recursive: true
             });
+            log(`Created directory ${outputDir}`);
         }
 
+        // Initial processor
+        await this.processDirs(baseDir, outputDir).catch(err => {
+            console.error(err);
+            return Promise.reject(new Error(`Error processing directory ${this.baseDir}`));
+        });
+
+        // Watcher
         if (this.options?.watch) {
             console.log(`Watching directory ${baseDir}...`);
-            chokidar.watch(baseDir, {
+
+            this._watcher = chokidar.watch(baseDir, {
                 ignored: (file, _stats) => !!_stats && _stats.isFile() && !this.matchFile(path.basename(file)),
                 persistent: true,
                 interval: 100,
                 depth: 10,
-            }).on('all', async (event, watchPath) => {
+            });
+
+            this._watcher.on('all', async (event, watchPath) => {
                 log(`File ${watchPath} has been ${event}`);
                 switch (event) {
                     case 'add':
                     case 'change':
-                    case 'unlink':
-                        await this.processDirs(baseDir, outputDir).catch(() => {
+                        await this.processDir(baseDir, outputDir).catch((err) => {
+                            console.error(err);
                             return Promise.reject(new Error(`Error processing directory ${this.baseDir}`));
+                        });
+                        break;
+                    case 'unlink':
+                        const relativeFilePath = watchPath.replace(baseDir, '');
+                        console.log(`File ${relativeFilePath} has been removed`);
+                        const ext = path.extname(relativeFilePath);
+                        const filename = path.basename(relativeFilePath).replace(ext, '');
+                        console.log(`Deleting file ${path.join(outputDir, `${filename}.css`)}`);
+                        await rm(path.join(outputDir, `${filename}.css`), {
+                            force: true,
+                            recursive: true
+                        }).catch(err => {
+                            console.error(`Error deleting file ${relativeFilePath}: ${err}`);
+                        });
+                        break;
+                    case 'unlinkDir':
+                        const relativePath = watchPath.replace(baseDir, '');
+                        console.log(`Directory ${relativePath} has been removed`);
+                        await rm(path.join(outputDir, relativePath), {
+                            force: true,
+                            recursive: true
+                        }).catch(err => {
+                            console.error(`Error deleting directory ${relativePath}: ${err}`);
                         });
                         break;
                 }
             });
         }
+    }
 
-        await this.processDirs(baseDir, outputDir).catch(() => {
-            return Promise.reject(new Error(`Error processing directory ${this.baseDir}`));
-        });
+    /**
+     * Stop the watcher.
+     */
+    public async stop(): Promise<void> {
+        if (this._watcher) {
+            await this._watcher.close();
+        }
     }
 
     /**
@@ -75,8 +115,8 @@ export class EntryCompiler {
      * @private
      */
     private async processDirs(inputDir: string, outputDir: string): Promise<void> {
-        await this.processOutputDir(inputDir, outputDir);
         await this.processDir(inputDir, outputDir);
+        await this.processOutputDir(inputDir, outputDir);
     }
 
     /**
@@ -104,27 +144,51 @@ export class EntryCompiler {
      * @private
      */
     private async processOutputDir(inputDir: string, outputDir: string): Promise<void> {
+        log(`Processing output directory ${outputDir}`);
         if (await exists(outputDir)) {
             const files = await readdir(outputDir);
             await Promise.all(files.map(async (file) => {
                 const fullPath = path.join(outputDir, file);
                 if (await isDir(fullPath)) {
                     await this.processOutputDir(path.join(inputDir, file), fullPath);
-                } else if (file.endsWith('.css')){
+                } else if (file.endsWith('.css')) {
                     // Check if the corresponding source file exists or not and delete the CSS file if it doesn't.
-                    const inputFiles = await readdir(inputDir);
-                    const cssBaseName = path.basename(file, '.css');
-                    const exists = inputFiles.find(inputFile => {
-                        const baseName = path.basename(inputFile);
-                        return baseName == cssBaseName && this.matchFile(baseName);
-                    });
-                    if (!exists) {
-                        await unlink(fullPath).catch(err => {
-                            console.error(`Error deleting file ${fullPath}: ${err}`);
+                    if (!await exists(inputDir)) {
+                        await rm(outputDir, {
+                            force: true,
+                            recursive: true
+                        }).catch(err => {
+                            console.error(`Error deleting directory ${outputDir}: ${err}`);
                         });
+                    } else {
+                        const inputFiles = await readdir(inputDir);
+                        const cssBaseName = path.basename(file, '.css');
+                        const exists = inputFiles.find(inputFile => {
+                            const ext = path.extname(inputFile);
+                            return cssBaseName == path.basename(inputFile, ext) && this.matchFile(inputFile);
+                        });
+
+                        if (!exists) {
+                            await unlink(fullPath).catch(err => {
+                                console.error(`Error deleting file ${fullPath}: ${err}`);
+                            });
+                        }
+
+                        // Check if the current directory is empty and delete it if it is.
+                        const outputFiles = await readdir(outputDir);
+                        if (outputFiles.length === 0) {
+                            await rm(outputDir, {
+                                force: true,
+                                recursive: true
+                            }).catch(err => {
+                                console.error(`Error deleting directory ${outputDir}: ${err}`);
+                            });
+                        }
                     }
                 }
             }));
+        } else {
+            log(`Output directory ${outputDir} not found`);
         }
     }
 

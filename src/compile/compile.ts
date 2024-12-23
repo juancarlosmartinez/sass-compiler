@@ -9,6 +9,7 @@ export class Compiler {
     }
 
     /* INSTANCE */
+    private readonly entryCompilers: EntryCompiler[] = [];
     private constructor(private readonly options?: CompilerOptions) {
     }
 
@@ -18,12 +19,25 @@ export class Compiler {
      * @private
      */
     private async processEntry(entry: CompileEntry): Promise<void> {
-        await EntryCompiler.build(entry, this.options).compile();
+        const entryCompiler = EntryCompiler.build(entry, this.options);
+        this.entryCompilers.push(entryCompiler);
+        await entryCompiler.compile();
     }
 
+    /**
+     * Compile the Sass files in the configuration.
+     * @param config The configuration to use
+     */
     public async compile(config: SassCompilerConfig): Promise<void> {
         await Promise.all(config.entries.map(entry => this.processEntry(entry).catch(async (err) => {
             console.error(`Error processing entry:`, err);
         })));
+    }
+
+    /**
+     * Stop the compiler.
+     */
+    public async stop(): Promise<void> {
+        await Promise.all(this.entryCompilers.map(entryCompiler => entryCompiler.stop()));
     }
 }
