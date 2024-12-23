@@ -29,6 +29,11 @@
     "compiler",
     "css"
   ],
+  "files": [
+    "dist",
+    "index.d.ts",
+    "index.js"
+  ],
   "engines": {
     "node": ">=20.0"
   },
