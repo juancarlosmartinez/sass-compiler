@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "A compiler for scss and sass files to css",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "types": "index.d.ts",
   "type": "commonjs",
   "bin": {
     "sass-compiler": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc --build && cp typings/index.d.ts dist/index.d.ts && rm -rf dist/tsconfig.tsbuildinfo",
+    "build": "rm -rf dist && tsc --build && rm -rf dist/tsconfig.tsbuildinfo",
     "dev": "tsc --build --watch",
     "test": "jest"
   },
