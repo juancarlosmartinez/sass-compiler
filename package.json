@@ -6,7 +6,7 @@
   "types": "index.d.ts",
   "type": "commonjs",
   "bin": {
-    "sass-compiler": "./dist/index.js"
+    "sass-compiler": "dist/index.js"
   },
   "scripts": {
     "build": "rm -rf dist && tsc --build && rm -rf dist/tsconfig.tsbuildinfo",
