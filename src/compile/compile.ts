@@ -1,10 +1,11 @@
 import {CompilerOptions} from "../options/options";
 import path from "node:path";
 import sass from "sass";
+import chokidar from "chokidar";
 import {exists, isDir, writeFile} from "../util/fs";
 import {mkdir, readdir} from "node:fs/promises";
 import {CompileEntry, SassCompilerConfig} from "../config/config";
-
+import fs from "node:fs";
 
 export class Compiler {
     /* STATIC */
@@ -13,7 +14,7 @@ export class Compiler {
     }
 
     /* INSTANCE */
-    private constructor(options?: CompilerOptions) {
+    private constructor(private readonly options?: CompilerOptions) {
     }
 
     /**
@@ -34,13 +35,37 @@ export class Compiler {
                 });
             }
 
+            if (this.options?.watch) {
+                chokidar.watch(baseDir, {
+                    ignored: (file, _stats) => !!_stats && _stats?.isFile() && !file.endsWith('.scss') && !file.endsWith('.sass'),
+                    persistent: true,
+                    interval: 100,
+                    depth: 5,
+                }).on('all', async (event, watchPath) => {
+                    switch (event) {
+                        case 'add':
+                        case 'change':
+                            await this.processDir(baseDir, outputDir).catch(() => {
+                                return Promise.reject(new Error(`Error processing directory ${entry.baseDir}`));
+                            });
+                            break;
+                        case 'unlink':
+                            const idx = watchPath.indexOf(process.cwd());
+                            if (idx >= 0) {
+                                const fileToDelete = path.join(outputDir, watchPath.substring(idx + process.cwd().length).replace('.scss', '.css'));
+                                fs.unlinkSync(fileToDelete);
+                            }
+                            break;
+                        }
+                    });
+            }
+
             await this.processDir(baseDir, outputDir).catch(() => {
                 return Promise.reject(new Error(`Error processing directory ${entry.baseDir}`));
             });
         } catch (e) {
             console.error(`Error processing entry ${entry.baseDir}`, e);
         }
-
     }
 
     /**

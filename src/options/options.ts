@@ -1,11 +1,10 @@
 import yargs from "yargs";
 import {hideBin} from "yargs/helpers";
-import {readFileSync} from "fs";
-import path from "node:path";
 import fs from "node:fs";
 
 export interface CompilerOptions {
     config?: string;
+    watch?: boolean;
 }
 
 export class Options implements CompilerOptions {
@@ -23,6 +22,10 @@ export class Options implements CompilerOptions {
                 'config': {
                     describe: 'Path to the configuration file',
                     type: 'string',
+                },
+                'watch': {
+                    describe: 'Watch for file changes',
+                    type: 'boolean',
                 }
             })
         ;
@@ -31,6 +34,7 @@ export class Options implements CompilerOptions {
 
         return new Options({
             config: args.config,
+            watch: args.watch
         });
     }
 
@@ -42,5 +46,7 @@ export class Options implements CompilerOptions {
         return this._data.config ?? '';
     }
 
-
+    public get watch(): boolean {
+        return this._data.watch ?? false;
+    }
 }

@@ -9,7 +9,7 @@ const main = async (): Promise<void> => {
     // Load configuration file
     const config = await loader(options);
 
-    const compiler = Compiler.build();
+    const compiler = Compiler.build(options);
 
     await compiler.compile(config);
 }
@@ -18,7 +18,6 @@ const main = async (): Promise<void> => {
 
 
 main().then(() => {
-    process.exit(0);
 }).catch((err) => {
     console.error(err);
     process.exit(1);

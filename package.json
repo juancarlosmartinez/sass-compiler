@@ -2,7 +2,7 @@
   "name": "sass-compiler",
   "version": "1.0.0",
   "description": "A compiler for scss and sass files to css",
-  "main": "index.js",
+  "main": "dist/index.js",
   "type": "commonjs",
   "bin": {
     "sass-compiler": "./dist/index.js"
@@ -32,7 +32,8 @@
   },
   "dependencies": {
     "sass": "^1.83.0",
-    "yargs": "^17.7.2"
+    "yargs": "^17.7.2",
+    "chokidar": "^4.0.3"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

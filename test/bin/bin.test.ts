@@ -19,7 +19,8 @@ beforeAll(async () => {
             outfile: executable,
         }),
         copyFile(path.join(__dirname, 'sass-compiler.config.js'), path.join(tmpDir, 'sass-compiler.config.js')),
-        copyFile(path.join(__dirname, 'test.scss'), path.join(tmpDir, 'test.scss'))
+        copyFile(path.join(__dirname, 'test.scss'), path.join(tmpDir, 'test.scss')),
+        copyFile(path.join(__dirname, '..', '..', 'package.json'), path.join(tmpDir, 'package.json')),
     ])
 })
 
