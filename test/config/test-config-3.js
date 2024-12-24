@@ -10,6 +10,9 @@ module.exports = {
             baseDir: 'test/fixtures',
             outputDir: 'test/css',
             filenames: /^[A-Z].+\.(scss|sass)$/,
+        },
+        {
+
         }
     ],
 }

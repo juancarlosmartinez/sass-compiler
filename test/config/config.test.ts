@@ -43,7 +43,7 @@ describe("Tests for compiler configuration", () => {
             config: 'test/config/test-config-3.js'
         });
 
-        expect(config.entries.sort().length).toBe(3);
+        expect(config.entries.sort().length).toBe(4);
 
         expect(config.entries[0].baseDir).toBe('test/fixtures');
         expect(config.entries[0].outputDir).toBe('test/fixtures');
@@ -56,10 +56,14 @@ describe("Tests for compiler configuration", () => {
         expect(config.entries[2].baseDir).toBe('test/fixtures');
         expect(config.entries[2].outputDir).toBe('test/css');
         expect(config.entries[2].filenames.source).toBe('^[A-Z].+\\.(scss|sass)$');
+
+        expect(config.entries[3].baseDir).toBe('.');
+        expect(config.entries[3].outputDir).toBe('.');
+        expect(config.entries[3].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
     });
 
     it('should fail to load the user configuration with invalid entry', async () => {
-        const config = loader({
+        await loader({
             config: 'test/config/test-config-4.js'
         }).catch(err => {
             expect(err).toBeInstanceOf(Error);

@@ -18,11 +18,6 @@ const writeFile = async (path: string, data: string) => {
     await fs.writeFile(path, data);
 }
 
-const readJSON = async <T=any>(file: string): Promise<T> => {
-    const buffer = await fs.readFile(file);
-    return JSON.parse(buffer.toString("utf-8"));
-}
-
 const isDir = async (path: string): Promise<boolean> => {
     const stats = await fs.stat(path);
     return stats.isDirectory();
@@ -31,6 +26,5 @@ const isDir = async (path: string): Promise<boolean> => {
 export {
     exists,
     writeFile,
-    readJSON,
     isDir
 };
