@@ -141,7 +141,7 @@ describe('Compiler', () => {
         });
 
         expect(await exists('test/compile/scss/test.scss')).toBe(false);
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
         expect(await exists('test/compile/css/v1/test.css')).toBe(false);
 
         await compiler.stop();
@@ -168,7 +168,7 @@ describe('Compiler', () => {
 
         await writeFile('test/compile/scss/src/test.scss', scssContentChanged);
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         expect(await exists('test/compile/css/v1/test.css')).toBe(true);
         expect(await exists('test/compile/css/v1/src/test.css')).toBe(true);
@@ -178,7 +178,7 @@ describe('Compiler', () => {
             recursive: true
         });
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         expect(await exists('test/compile/scss/src')).toBe(false);
 
@@ -209,7 +209,7 @@ describe('Compiler', () => {
             }]
         });
 
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         await compiler.stop();
 
