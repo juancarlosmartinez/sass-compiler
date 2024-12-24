@@ -6,26 +6,8 @@ on:
     branches: [ master ]
 
 jobs:
-  tests:
-    name: Execute Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Lint
-        run: npm run test
-
   coverage:
-    name: Coverage
+    name: Test and Coverage
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests
+      - name: Run tests and coverage
         run: npm run test
 
       - name: Upload coverage reports to Codecov
