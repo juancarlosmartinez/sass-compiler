@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+  versioning:
+    runs-on: ubuntu-latest
+    needs: prepare
+    steps:
+      - name: Updating package.json version
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          echo "Updating package.json version to VERSION"
+          npm version ${VERSION}
+
+      - name: Commit package.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: version bump to ${VERSION}"
+
+      - name: Create tag
+        run: |
+          git tag "${VERSION}"
+          git push origin --tags
+
+  release:
+    runs-on: ubuntu-latest
+    needs: versioning
+    steps:
+      - name: Creating release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          release_name: ${{ github.event.inputs.version }}
+          body: "Release ${{ github.event.inputs.version }} created automatically"
+          draft: false
+          prerelease: false
+
+  build:
+    runs-on: ubuntu-latest
+    needs: versioning
+    steps:
+      - name: Build
+        run: npm run build
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publish to NPM
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
