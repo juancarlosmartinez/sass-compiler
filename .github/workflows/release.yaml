@@ -42,9 +42,9 @@ jobs:
       - name: Creating release
         uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.event.inputs.version }}
-          release_name: ${{ github.event.inputs.version }}
-          body: "Release ${{ github.event.inputs.version }} created automatically"
+          tag_name: v${VERSION}
+          release_name: v${VERSION}
+          body: "Release v${{ github.event.inputs.version }} created automatically"
           draft: false
           prerelease: false
 
