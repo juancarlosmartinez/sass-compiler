@@ -38,9 +38,29 @@ export class EntryCompiler {
             return Promise.reject(new Error(`Base directory ${baseDir} not found`));
         }
         if (!await exists(outputDir)) {
-            await mkdir(outputDir, {
-                recursive: true
-            });
+            let tries = 0;
+            let created: boolean = false;
+            let mkDirError: Error | null = null;
+            while (!created && tries < 3) {
+                await mkdir(outputDir, {
+                    recursive: true
+                }).then(r => {
+                    if (r) {
+                        created = true;
+                    } else {
+                        tries++;
+                    }
+                }).catch(e => {
+                    mkDirError = e;
+                    tries++;
+                    return false;
+                });
+            }
+
+            if (!created) {
+                return Promise.reject(new Error(`Error creating directory ${outputDir}: ${mkDirError}`));
+            }
+
             log(`Created directory ${outputDir}`);
         }
 
