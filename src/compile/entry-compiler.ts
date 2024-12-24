@@ -72,27 +72,10 @@ export class EntryCompiler {
                         });
                         break;
                     case 'unlink':
-                        const relativeFilePath = watchPath.replace(baseDir, '');
-                        console.log(`File ${relativeFilePath} has been removed`);
-                        const ext = path.extname(relativeFilePath);
-                        const filename = path.basename(relativeFilePath).replace(ext, '');
-                        console.log(`Deleting file ${path.join(outputDir, `${filename}.css`)}`);
-                        await rm(path.join(outputDir, `${filename}.css`), {
-                            force: true,
-                            recursive: true
-                        }).catch(err => {
-                            console.error(`Error deleting file ${relativeFilePath}: ${err}`);
-                        });
+                        await this.doUnlink(watchPath, baseDir, outputDir);
                         break;
                     case 'unlinkDir':
-                        const relativePath = watchPath.replace(baseDir, '');
-                        console.log(`Directory ${relativePath} has been removed`);
-                        await rm(path.join(outputDir, relativePath), {
-                            force: true,
-                            recursive: true
-                        }).catch(err => {
-                            console.error(`Error deleting directory ${relativePath}: ${err}`);
-                        });
+                        await this.doUnlinkDir(watchPath, baseDir, outputDir);
                         break;
                 }
             });
@@ -106,6 +89,49 @@ export class EntryCompiler {
         if (this._watcher) {
             await this._watcher.close();
         }
+    }
+
+    /**
+     * Unlink a file.
+     * @param watchPath The path of the file to unlink
+     * @param baseDir The base directory
+     * @param outputDir The output directory
+     * @private
+     */
+    private async doUnlink(watchPath: string, baseDir: string, outputDir: string): Promise<void> {
+        const relativeFilePath = watchPath.replace(baseDir, '');
+
+        console.log(`File ${relativeFilePath} has been removed`);
+
+        const ext = path.extname(relativeFilePath);
+        const filename = path.basename(relativeFilePath).replace(ext, '');
+
+        console.log(`Deleting file ${path.join(outputDir, `${filename}.css`)}`);
+
+        await rm(path.join(outputDir, `${filename}.css`), {
+            force: true,
+            recursive: true
+        }).catch(err => {
+            console.error(`Error deleting file ${relativeFilePath}: ${err}`);
+        });
+    }
+
+    /**
+     * Unlink a directory.
+     * @param watchPath The path of the directory to unlink
+     * @param baseDir The base directory
+     * @param outputDir The output directory
+     * @private
+     */
+    private async doUnlinkDir(watchPath: string, baseDir: string, outputDir: string): Promise<void> {
+        const relativePath = watchPath.replace(baseDir, '');
+        console.log(`Directory ${relativePath} has been removed`);
+        await rm(path.join(outputDir, relativePath), {
+            force: true,
+            recursive: true
+        }).catch(err => {
+            console.error(`Error deleting directory ${relativePath}: ${err}`);
+        });
     }
 
     /**

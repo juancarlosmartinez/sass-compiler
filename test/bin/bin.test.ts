@@ -34,7 +34,7 @@ describe("Compile", () => {
     });
 
     it("should delete css file - watch", async () => {
-        let child = await run({
+        const child = await run({
             watch: true
         }) as ChildProcess;
 
@@ -84,7 +84,7 @@ const run = ({watch}: {watch?: boolean} = {}): Promise<ChildProcessWithoutNullSt
         cwd: tmpDir
     });
 
-    return new Promise((resolve: Function) => {
+    return new Promise(resolve  => {
 
         child.stdout.on('data', (data) => {
             console.log(data.toString());
@@ -97,7 +97,7 @@ const run = ({watch}: {watch?: boolean} = {}): Promise<ChildProcessWithoutNullSt
             resolve(child);
         } else {
             child.on('exit', (code) => {
-                resolve(code);
+                resolve(code!);
             });
         }
     });

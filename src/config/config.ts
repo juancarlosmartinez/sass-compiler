@@ -43,7 +43,7 @@ export const loader = async (options: CompilerOptions): Promise<SassCompilerConf
         config = DEFAULT_CONFIG;
         log(`Configuration file not found, using default configuration`);
     } else {
-        const userConfig: SassCompilerConfig = require(configPath);
+        const userConfig: SassCompilerConfig = await import(configPath);
 
         log(`Configuration file found, using user configuration: ${JSON.stringify(userConfig)}`);
 
