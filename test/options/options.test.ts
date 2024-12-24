@@ -3,11 +3,19 @@ import {Options} from "../../src/options/options";
 describe("Tests for compiler options", () => {
 
     it('should parse default options', async () => {
+        const originalArgv = process.argv;
+        process.argv = [
+            'node',
+            'script.js',
+        ];
+
         const options = Options.build();
 
         expect(options.watch).toBe(false);
         expect(options.verbose).toBe(false);
         expect(options.config).toBe(undefined);
+
+        process.argv = originalArgv;
     });
 
     it('should parse options with arguments', async () => {
