@@ -44,12 +44,8 @@ export class EntryCompiler {
             while (!created && tries < 3) {
                 await mkdir(outputDir, {
                     recursive: true
-                }).then(r => {
-                    if (r) {
-                        created = true;
-                    } else {
-                        tries++;
-                    }
+                }).then(() => {
+                    created = true;
                 }).catch(e => {
                     mkDirError = e;
                     tries++;
