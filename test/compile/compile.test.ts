@@ -117,6 +117,34 @@ describe('Compiler', () => {
         await compiler.stop();
     });
 
+    it('should change css on change scss file minified', async () => {
+        const compiler = Compiler.build({
+            watch: true
+        });
+
+        expect(compiler).toBeInstanceOf(Compiler);
+
+        await compiler.compile({
+            entries: [{
+                baseDir: 'test/compile/scss',
+                outputDir: 'test/compile/css/v1',
+                filenames: /\.scss$/,
+                minify: true,
+                sourceMap: false
+            }]
+        });
+
+        expect(await exists('test/compile/css/v1')).toBe(true);
+        expect(await exists('test/compile/css/v1/test.css')).toBe(true);
+
+        await writeFile('test/compile/scss/test.scss', scssContentChanged);
+
+        expect(await exists('test/compile/scss/test.scss')).toBe(true);
+        expect(await exists('test/compile/css/v1/test.css')).toBe(true);
+
+        await compiler.stop();
+    });
+
     it('should delete css on delete scss file', async () => {
         const compiler = Compiler.build({
             watch: true
