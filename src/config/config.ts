@@ -25,6 +25,8 @@ export interface CompileEntry {
     baseDir: string;
     outputDir: string;
     filenames: RegExp;
+    minify?: boolean;
+    sourceMap?: boolean;
 }
 
 export const loader = async (options: CompilerOptions): Promise<SassCompilerConfig> => {
