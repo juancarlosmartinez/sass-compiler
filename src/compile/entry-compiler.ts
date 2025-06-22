@@ -19,11 +19,25 @@ export class EntryCompiler {
     private readonly baseDir: string;
     private readonly outputDir: string;
     private readonly filenames: RegExp;
+    private readonly minify: boolean;
+    private readonly sourceMap: boolean;
     private _watcher: FSWatcher | null = null;
     private constructor(entry: CompileEntry, private readonly options?: CompilerOptions) {
         this.baseDir = entry.baseDir;
         this.outputDir = entry.outputDir;
         this.filenames = entry.filenames;
+
+        if (entry.minify !== undefined) {
+            this.minify = entry.minify;
+        } else {
+            this.minify = !options?.watch;
+        }
+
+        if (entry.sourceMap !== undefined) {
+            this.sourceMap = entry.sourceMap;
+        } else {
+            this.sourceMap = !options?.watch;
+        }
     }
 
     private matchFile(file: string): boolean {
@@ -245,7 +259,10 @@ export class EntryCompiler {
             const ext = path.extname(file);
             const filename = path.basename(file);
             try {
-                const {css} = sass.compile(file);
+                const {css} = sass.compile(file, {
+                    style: this.minify ? 'compressed' : 'expanded',
+                    sourceMap: this.sourceMap,
+                });
                 console.log(`Compiled successfully: ${file}`);
                 const outFile = path.join(outputDir, filename.replace(ext, '.css'));
                 await writeFile(outFile, css);
