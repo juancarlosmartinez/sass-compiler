@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import path from "node:path";
 import {mkdir, readdir, rm, unlink} from "node:fs/promises";
 
@@ -6,13 +7,13 @@ import sass from "sass";
 
 import {log} from "../util/log";
 import {exists, isDir, writeFile} from "../util/fs";
-import {CompileEntry} from "../config/config";
+import {CompileEntry, SassCompilerConfig} from "../config/config";
 import {CompilerOptions} from "../options/options";
 
 export class EntryCompiler {
     /* STATIC */
-    public static build(entry: CompileEntry, options?: CompilerOptions): EntryCompiler {
-        return new EntryCompiler(entry, options);
+    public static build(entry: CompileEntry, config: SassCompilerConfig, options?: CompilerOptions): EntryCompiler {
+        return new EntryCompiler(entry, config, options);
     }
 
     /* INSTANCE */
@@ -22,7 +23,7 @@ export class EntryCompiler {
     private readonly minify: boolean;
     private readonly sourceMap: boolean;
     private _watcher: FSWatcher | null = null;
-    private constructor(entry: CompileEntry, private readonly options?: CompilerOptions) {
+    private constructor(entry: CompileEntry, private readonly config: SassCompilerConfig, private readonly options?: CompilerOptions) {
         this.baseDir = entry.baseDir;
         this.outputDir = entry.outputDir;
         this.filenames = entry.filenames;
@@ -207,38 +208,42 @@ export class EntryCompiler {
                 const fullPath = path.join(outputDir, file);
                 if (await isDir(fullPath)) {
                     await this.processOutputDir(path.join(inputDir, file), fullPath);
-                } else if (file.endsWith('.css')) {
-                    // Check if the corresponding source file exists or not and delete the CSS file if it doesn't.
-                    if (!await exists(inputDir)) {
-                        await rm(outputDir, {
-                            force: true,
-                            recursive: true
-                        }).catch(err => {
-                            console.error(`Error deleting directory ${outputDir}: ${err}`);
-                        });
-                    } else {
-                        const inputFiles = await readdir(inputDir);
-                        const cssBaseName = path.basename(file, '.css');
-                        const exists = inputFiles.find(inputFile => {
-                            const ext = path.extname(inputFile);
-                            return cssBaseName == path.basename(inputFile, ext) && this.matchFile(inputFile);
-                        });
+                } else {
+                    const extension = this.config.output?.filename ? path.extname(this.config.output.filename) : '.css';
 
-                        if (!exists) {
-                            await unlink(fullPath).catch(err => {
-                                console.error(`Error deleting file ${fullPath}: ${err}`);
-                            });
-                        }
-
-                        // Check if the current directory is empty and delete it if it is.
-                        const outputFiles = await readdir(outputDir);
-                        if (outputFiles.length === 0) {
+                    if (file.endsWith(extension)) {
+                        if (!await exists(inputDir)) {
                             await rm(outputDir, {
                                 force: true,
                                 recursive: true
                             }).catch(err => {
                                 console.error(`Error deleting directory ${outputDir}: ${err}`);
                             });
+                        } else {
+                            const inputFiles = await readdir(inputDir);
+                            const generatedBaseName = this.getBaseName(file, extension);
+
+                            const exists = inputFiles.find(inputFile => {
+                                const ext = path.extname(inputFile);
+                                return generatedBaseName == path.basename(inputFile, ext) && this.matchFile(inputFile);
+                            });
+
+                            if (!exists) {
+                                await unlink(fullPath).catch(err => {
+                                    console.error(`Error deleting file ${fullPath}: ${err}`);
+                                });
+                            }
+
+                            // Check if the current directory is empty and delete it if it is.
+                            const outputFiles = await readdir(outputDir);
+                            if (outputFiles.length === 0) {
+                                await rm(outputDir, {
+                                    force: true,
+                                    recursive: true
+                                }).catch(err => {
+                                    console.error(`Error deleting directory ${outputDir}: ${err}`);
+                                });
+                            }
                         }
                     }
                 }
@@ -256,20 +261,88 @@ export class EntryCompiler {
      */
     private async processFile(file: string, outputDir: string): Promise<void> {
         if (this.matchFile(path.basename(file))) {
-            const ext = path.extname(file);
-            const filename = path.basename(file);
             try {
                 const {css} = sass.compile(file, {
                     style: this.minify ? 'compressed' : 'expanded',
                     sourceMap: this.sourceMap,
                 });
                 console.log(`Compiled successfully: ${file}`);
-                const outFile = path.join(outputDir, filename.replace(ext, '.css'));
+                const outFile = path.join(outputDir, this.buildOutputFileName(file, css));
                 await writeFile(outFile, css);
+                console.log(`Output written to: ${outFile}`);
             } catch (e) {
                 console.error(e);
             }
         }
     }
 
+    private buildOutputFileName(file: string, content: string): string {
+        const ext = path.extname(file);
+        const filename = path.basename(file);
+
+        let outputExtension = '.css';
+        const variables: string[] = [];
+        if (this.config.output && this.config.output.filename) {
+            // Identify all template variables in the output filename
+            const match = this.config.output.filename.match(/\[([^\]]+)]/g);
+
+            if (match) {
+                match.forEach(variable => {
+                    variables.push(variable.replace(/[[\]]/g, ''));
+                });
+            }
+
+            outputExtension = path.extname(this.config.output.filename) || outputExtension;
+        }
+
+        let outputFilename: string = (this.config.output?.filename||filename).replace(ext, outputExtension);
+
+        variables.forEach(variable => {
+            switch (variable) {
+                case 'name':
+                    outputFilename = outputFilename.replace('[name]', path.basename(file, ext));
+                    break;
+                case 'hash': {
+                        const hash = crypto.createHash('md5').update(content).digest('hex').substring(0, 8);
+                        outputFilename = outputFilename.replace('[hash]', hash);
+                    }
+                    break;
+            }
+        });
+
+        return outputFilename;
+    }
+
+    private getBaseName(file: string, extension: string): string {
+
+        let baseName: string;
+
+
+        if (this.config.output?.filename) {
+            // Identify all template variables in the output filename
+            const match = this.config.output.filename.match(/\[([^\]]+)]/g);
+            const variables = match?.map(variable => variable.replace(/[[\]]/g, '')) || [];
+
+            const filenameParts = file.split('.');
+
+            baseName = this.config.output.filename.replace(extension, '');
+            variables.forEach((variable, idx) => {
+                switch (variable) {
+                    case 'name':
+                        baseName = baseName.replace('[name]', filenameParts[idx]);
+                        break;
+                    default:
+                        baseName = baseName.replace(`[${variable}]`, '');
+                        break;
+                }
+            });
+        } else {
+            baseName = path.basename(file, path.extname(file));
+        }
+
+        // Remove any trailing dots or underscores
+        baseName = baseName.replace(/[._]+$/, '');
+
+        return baseName;
+    }
 }

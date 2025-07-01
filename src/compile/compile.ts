@@ -16,10 +16,11 @@ export class Compiler {
     /**
      * Process a single entry from the configuration file.
      * @param entry The entry to process
+     * @param config The configuration to use
      * @private
      */
-    private async processEntry(entry: CompileEntry): Promise<void> {
-        const entryCompiler = EntryCompiler.build(entry, this.options);
+    private async processEntry(entry: CompileEntry, config: SassCompilerConfig): Promise<void> {
+        const entryCompiler = EntryCompiler.build(entry, config, this.options);
         this.entryCompilers.push(entryCompiler);
         await entryCompiler.compile();
     }
@@ -29,7 +30,7 @@ export class Compiler {
      * @param config The configuration to use
      */
     public async compile(config: SassCompilerConfig): Promise<void> {
-        await Promise.all(config.entries.map(entry => this.processEntry(entry).catch(async (err) => {
+        await Promise.all(config.entries.map(async entry => await this.processEntry(entry, config).catch(async (err) => {
             console.error(`Error processing entry:`, err);
         })));
     }
