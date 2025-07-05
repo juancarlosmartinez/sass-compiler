@@ -14,11 +14,25 @@ const DEFAULT_ENTRY: CompileEntry = {
 const DEFAULT_CONFIG: SassCompilerConfig = {
     entries: [
         DEFAULT_ENTRY
-    ]
+    ],
+    output: {
+        filename: '[name].css'
+    }
+}
+
+type OutputConfig = {
+    filename: string;
+    manifest?: ManifestConfig;
+}
+
+export type ManifestConfig = {
+    path: string;
+    filename?: string;
 }
 
 export interface SassCompilerConfig {
     entries: CompileEntry[];
+    output?: OutputConfig;
 }
 
 export interface CompileEntry {

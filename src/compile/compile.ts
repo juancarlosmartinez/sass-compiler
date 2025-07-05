@@ -1,6 +1,8 @@
 import {CompilerOptions} from "../options/options";
 import {CompileEntry, SassCompilerConfig} from "../config/config";
 import {EntryCompiler} from "./entry-compiler";
+import {Manifest} from "../config/manifest";
+import {log} from "../util/log";
 
 export class Compiler {
     /* STATIC */
@@ -10,16 +12,22 @@ export class Compiler {
 
     /* INSTANCE */
     private readonly entryCompilers: EntryCompiler[] = [];
+    private manifest?: Manifest;
     private constructor(private readonly options?: CompilerOptions) {
     }
 
     /**
      * Process a single entry from the configuration file.
      * @param entry The entry to process
+     * @param config The configuration to use
+     * @param manifest The manifest to use for tracking compiled files
      * @private
      */
-    private async processEntry(entry: CompileEntry): Promise<void> {
-        const entryCompiler = EntryCompiler.build(entry, this.options);
+    private async processEntry(entry: CompileEntry, config: SassCompilerConfig, manifest?: Manifest): Promise<void> {
+        const entryCompiler = EntryCompiler.build(entry, config, {
+            options: this.options,
+            manifest,
+        });
         this.entryCompilers.push(entryCompiler);
         await entryCompiler.compile();
     }
@@ -29,7 +37,12 @@ export class Compiler {
      * @param config The configuration to use
      */
     public async compile(config: SassCompilerConfig): Promise<void> {
-        await Promise.all(config.entries.map(entry => this.processEntry(entry).catch(async (err) => {
+        if (config.output?.manifest) {
+            this.manifest = Manifest.build(config.output.manifest);
+            log(`Building manifest`)
+        }
+
+        await Promise.all(config.entries.map(async entry => await this.processEntry(entry, config, this.manifest).catch(async (err) => {
             console.error(`Error processing entry:`, err);
         })));
     }

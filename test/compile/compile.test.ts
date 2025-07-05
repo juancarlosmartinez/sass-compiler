@@ -247,6 +247,25 @@ describe('Compiler', () => {
         expect(await exists('test/compile/scss/src/test.scss')).toBe(false);
     });
 
+    it('should generate css files with custom output filename', async () => {
+        const compiler = Compiler.build();
+
+        await compiler.compile({
+            entries: [{
+                baseDir: 'test/compile/scss',
+                outputDir: 'test/compile/css/v1',
+                filenames: /\.scss$/
+            }],
+            output: {
+                filename: '[name].[hash].css'
+            }
+        });
+
+        expect(await exists('test/compile/css/v1')).toBe(true);
+        expect(await exists('test/compile/css/v1/test.704c8bb7.css')).toBe(true);
+
+    });
+
     afterEach(async () => {
         await Promise.all([
             rm('test/compile/scss', {

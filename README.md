@@ -53,6 +53,23 @@ It replies the directory structure of the `baseDir` directory in the `outputDir`
 
 You can create multiple entries to compile multiple directories.
 
+## Advanced usage
+There are some options you can use to customize the compilation process.
+- `entries`: An array of objects that specify the input and output directories. Each object should have a `baseDir` property (the directory containing the scss/sass files) and an `outputDir` property (the directory where the compiled css files will be saved).+
+  - `baseDir`: The directory containing the scss/sass files. This
+  - `outputDir`: The directory where the compiled css files will be saved. The directory structure of the `baseDir` directory will be replicated in the `outputDir` directory.
+  - `filenames`: A regex pattern to match the filenames of the scss/sass files to compile.
+  - `minify`: A boolean value that indicates whether to minify the compiled css files. Default is `false`.
+  - `sourceMap`: A boolean value that indicates whether to generate source maps for the compiled css files. Default is `false`.
+- `output`: An optional object that specifies the output options for the compiled css files.
+  - `filename`: The name of the compiled css file. You can use placeholders like `[name]` and `[hash]` to customize the filename.
+    - `[name]`: The name of the scss/sass file without the extension.
+    - `[hash]`: A 8-character hash of the content of the scss/sass file.
+  - `manifest`: An optional object that specifies the manifest options for the compiled css files.
+    - `path`: The path to the manifest file.
+    - `filename`: The name of the manifest file. If not specified, it will default to `manifest.json`.
+
+
 ## Development
 If you don't want to run the command every time you make a change in the scss files, you can use the `--watch` flag.
 
