@@ -9,11 +9,18 @@ import {log} from "../util/log";
 import {exists, isDir, writeFile} from "../util/fs";
 import {CompileEntry, SassCompilerConfig} from "../config/config";
 import {CompilerOptions} from "../options/options";
+import {Manifest} from "../config/manifest";
+
+type BuildOptions = {
+    options?: CompilerOptions;
+    manifest?: Manifest;
+}
 
 export class EntryCompiler {
     /* STATIC */
-    public static build(entry: CompileEntry, config: SassCompilerConfig, options?: CompilerOptions): EntryCompiler {
-        return new EntryCompiler(entry, config, options);
+    public static build(entry: CompileEntry, config: SassCompilerConfig, buildOptions?: BuildOptions): EntryCompiler {
+        const {options, manifest} = buildOptions || {};
+        return new EntryCompiler(entry, config, options, manifest);
     }
 
     /* INSTANCE */
@@ -23,7 +30,12 @@ export class EntryCompiler {
     private readonly minify: boolean;
     private readonly sourceMap: boolean;
     private _watcher: FSWatcher | null = null;
-    private constructor(entry: CompileEntry, private readonly config: SassCompilerConfig, private readonly options?: CompilerOptions) {
+    private constructor(
+        entry: CompileEntry,
+        private readonly config: SassCompilerConfig,
+        private readonly options?: CompilerOptions,
+        private readonly manifest?: Manifest
+    ) {
         this.baseDir = entry.baseDir;
         this.outputDir = entry.outputDir;
         this.filenames = entry.filenames;
@@ -83,7 +95,7 @@ export class EntryCompiler {
 
         // Watcher
         if (this.options?.watch) {
-            console.log(`Watching directory ${baseDir}...`);
+            log(`Watching directory ${baseDir}...`);
 
             this._watcher = chokidar.watch(baseDir, {
                 ignored: (file, _stats) => !!_stats && _stats.isFile() && !this.matchFile(path.basename(file)),
@@ -132,12 +144,33 @@ export class EntryCompiler {
     private async doUnlink(watchPath: string, baseDir: string, outputDir: string): Promise<void> {
         const relativeFilePath = watchPath.replace(baseDir, '');
 
-        console.log(`File ${relativeFilePath} has been removed`);
+        log(`File ${relativeFilePath} has been removed`);
 
         const ext = path.extname(relativeFilePath);
         const filename = path.basename(relativeFilePath).replace(ext, '');
 
-        console.log(`Deleting file ${path.join(outputDir, `${filename}.css`)}`);
+        // Find filename that matches the output filename patterns
+        const outputFiles = await readdir(outputDir);
+
+        for (const outputFile of outputFiles) {
+            const outputExt = path.extname(outputFile);
+            const outputBaseName = this.getBaseName(outputFile, outputExt);
+
+            if (outputBaseName === filename) {
+                // If the file matches the output filename pattern, delete it
+                log(`Deleting file ${path.join(outputDir, outputFile)}`);
+                await unlink(path.join(outputDir, outputFile)).catch(err => {
+                    console.error(`Error deleting file ${relativeFilePath}: ${err}`);
+                });
+
+                if (this.manifest) {
+                    const key = path.relative(process.cwd(), watchPath.replace(ext, ''));
+                    this.manifest.delete(key);
+                    await this.manifest.save();
+                    log(`Removed from manifest: ${key}`);
+                }
+            }
+        }
 
         await rm(path.join(outputDir, `${filename}.css`), {
             force: true,
@@ -156,7 +189,7 @@ export class EntryCompiler {
      */
     private async doUnlinkDir(watchPath: string, baseDir: string, outputDir: string): Promise<void> {
         const relativePath = watchPath.replace(baseDir, '');
-        console.log(`Directory ${relativePath} has been removed`);
+        log(`Directory ${relativePath} has been removed`);
         await rm(path.join(outputDir, relativePath), {
             force: true,
             recursive: true
@@ -232,6 +265,13 @@ export class EntryCompiler {
                                 await unlink(fullPath).catch(err => {
                                     console.error(`Error deleting file ${fullPath}: ${err}`);
                                 });
+
+                                if (this.manifest) {
+                                    const key = path.relative(process.cwd(), fullPath);
+                                    this.manifest.delete(key);
+                                    await this.manifest.save();
+                                    log(`Removed from manifest: ${key}`);
+                                }
                             }
 
                             // Check if the current directory is empty and delete it if it is.
@@ -266,10 +306,19 @@ export class EntryCompiler {
                     style: this.minify ? 'compressed' : 'expanded',
                     sourceMap: this.sourceMap,
                 });
-                console.log(`Compiled successfully: ${file}`);
-                const outFile = path.join(outputDir, this.buildOutputFileName(file, css));
+                log(`Compiled successfully: ${file}`);
+                const outFilename = this.buildOutputFileName(file, css);
+                const outFile = path.join(outputDir, outFilename);
                 await writeFile(outFile, css);
-                console.log(`Output written to: ${outFile}`);
+
+                if (this.manifest) {
+                    const extension = path.extname(file);
+                    const key = path.relative(process.cwd(), file.replace(extension, ''));
+                    const value = path.relative(process.cwd(), outFile);
+                    this.manifest.add(key, value);
+                    await this.manifest.save();
+                }
+                log(`Output written to: ${outFile}`);
             } catch (e) {
                 console.error(e);
             }

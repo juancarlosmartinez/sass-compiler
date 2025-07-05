@@ -22,6 +22,12 @@ const DEFAULT_CONFIG: SassCompilerConfig = {
 
 type OutputConfig = {
     filename: string;
+    manifest?: ManifestConfig;
+}
+
+export type ManifestConfig = {
+    path: string;
+    filename?: string;
 }
 
 export interface SassCompilerConfig {
