@@ -45,7 +45,14 @@ export class Manifest {
      */
     public async save(): Promise<void> {
         try {
-            await writeFile(this.path, JSON.stringify(this.mapping, null, 2));
+            const keys = Object.keys(this.mapping);
+            // Sort the keys to ensure consistent order
+            keys.sort();
+            const sortedMapping: Record<string, string> = {};
+            for (const key of keys) {
+                sortedMapping[key] = this.mapping[key];
+            }
+            await writeFile(this.path, JSON.stringify(sortedMapping, null, 2));
         } catch (error) {
             console.error(`Error saving manifest to ${this.path}:`, error);
         }
