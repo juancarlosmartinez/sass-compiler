@@ -1,4 +1,5 @@
 import {mkdir, rm, writeFile} from "node:fs/promises";
+import {spawn} from "node:child_process";
 
 const scssContent = `
     body {
@@ -23,7 +24,6 @@ describe('Main Compiler', () => {
             'node',
             'script.js',
             '--config=test/index/config.js',
-            '--watch',
             '--verbose'
         ];
 
