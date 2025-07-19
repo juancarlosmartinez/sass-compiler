@@ -11,7 +11,7 @@ export class Manifest {
     private readonly path: string;
     private readonly mapping: Record<string, string>;
     private constructor(private readonly _basedir: string, private readonly _name: string = 'manifest.json') {
-        this.path = `${this._basedir}/${this._name}`;
+        this.path = `${this._basedir}${this._basedir.endsWith('/') ? '' : '/'}${this._name}`;
         this.mapping = {};
     }
 
