@@ -92,6 +92,9 @@ describe('Compiler', () => {
             }),
             unlink('test/compile/manifest.json').catch(() => {
                 // Ignore if file does not exist
+            }),
+            unlink('test/compile/manifest.json.lock').catch(() => {
+                // Ignore if file does not exist
             })
         ]);
     });
