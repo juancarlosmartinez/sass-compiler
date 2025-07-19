@@ -1,5 +1,6 @@
 import {ManifestConfig} from "./config";
 import {writeFile} from "../util/fs";
+import fs from "node:fs/promises";
 
 export class Manifest {
     /* STATIC */
@@ -44,7 +45,14 @@ export class Manifest {
      * Save the manifest to the file system.
      */
     public async save(): Promise<void> {
+        const lockFile = `${this.path}.lock`;
+        let lockAcquired = false;
+
         try {
+            // Tray to acquire a lock
+            await fs.writeFile(lockFile, process.pid.toString(), { flag: 'wx' });
+            lockAcquired = true;
+
             const keys = Object.keys(this.mapping);
             // Sort the keys to ensure consistent order
             keys.sort();
@@ -53,8 +61,17 @@ export class Manifest {
                 sortedMapping[key] = this.mapping[key];
             }
             await writeFile(this.path, JSON.stringify(sortedMapping, null, 2));
-        } catch (error) {
+        } catch (error: unknown) {
+            if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'EEXIST') {
+                // Lock file already exists, another process is writing the manifest
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                return this.save(); // Retry saving after waiting
+            }
             console.error(`Error saving manifest to ${this.path}:`, error);
+        } finally {
+            if (lockAcquired) {
+                await fs.unlink(lockFile).catch(() => {});
+            }
         }
     }
 
