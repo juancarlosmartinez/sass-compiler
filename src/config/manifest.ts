@@ -62,9 +62,9 @@ export class Manifest {
             }
             await writeFile(this.path, JSON.stringify(sortedMapping, null, 2));
         } catch (error: unknown) {
-            if (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code === 'EEXIST') {
+            if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string' && error.code === 'EEXIST') {
                 // Lock file already exists, another process is writing the manifest
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 100));
                 return this.save(); // Retry saving after waiting
             }
             console.error(`Error saving manifest to ${this.path}:`, error);
