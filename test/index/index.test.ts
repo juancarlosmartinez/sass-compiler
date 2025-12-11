@@ -1,5 +1,4 @@
 import {mkdir, rm, writeFile} from "node:fs/promises";
-import {spawn} from "node:child_process";
 
 const scssContent = `
     body {
