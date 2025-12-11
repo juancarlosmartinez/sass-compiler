@@ -37,7 +37,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -55,7 +58,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -75,7 +81,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -101,7 +110,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -127,7 +139,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/,
                 minify: true,
                 sourceMap: false
@@ -155,7 +170,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -189,7 +207,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -232,7 +253,10 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].css'
+                },
                 filenames: /\.scss$/
             }]
         });
@@ -253,12 +277,12 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].[hash].css'
+                },
                 filenames: /\.scss$/
             }],
-            output: {
-                filename: '[name].[hash].css'
-            }
         });
 
         expect(await exists('test/compile/css/v1')).toBe(true);

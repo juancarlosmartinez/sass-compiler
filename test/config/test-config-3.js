@@ -4,11 +4,15 @@ module.exports = {
             baseDir: 'test/fixtures',
         },
         {
-            outputDir: 'test/css',
+            outputConfig: {
+                directory: 'test/css'
+            },
         },
         {
             baseDir: 'test/fixtures',
-            outputDir: 'test/css',
+            outputConfig: {
+                directory: 'test/css'
+            },
             filenames: /^[A-Z].+\.(scss|sass)$/,
         },
         {

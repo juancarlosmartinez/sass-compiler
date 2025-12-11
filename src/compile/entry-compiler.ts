@@ -2,14 +2,16 @@ import crypto from "node:crypto";
 import path from "node:path";
 import {mkdir, readdir, rm, unlink} from "node:fs/promises";
 
-import chokidar, {FSWatcher} from "chokidar";
+import {FSWatcher, watch} from "chokidar";
 import sass from "sass";
 
 import {log} from "../util/log";
 import {exists, isDir, writeFile} from "../util/fs";
-import {CompileEntry, SassCompilerConfig} from "../config/config";
+import {CompileEntry} from "../config/config";
 import {CompilerOptions} from "../options/options";
 import {Manifest} from "../config/manifest";
+import {ChangeQueue} from "./event/change-queue";
+import {ChangeEvent} from "./event/change-event";
 
 type BuildOptions = {
     options?: CompilerOptions;
@@ -18,27 +20,34 @@ type BuildOptions = {
 
 export class EntryCompiler {
     /* STATIC */
-    public static build(entry: CompileEntry, config: SassCompilerConfig, buildOptions?: BuildOptions): EntryCompiler {
-        const {options, manifest} = buildOptions || {};
-        return new EntryCompiler(entry, config, options, manifest);
+    public static build(entry: CompileEntry, buildOptions?: BuildOptions): EntryCompiler {
+        const {options} = buildOptions || {};
+        return new EntryCompiler(entry, options);
     }
 
     /* INSTANCE */
     private readonly baseDir: string;
     private readonly outputDir: string;
+    private readonly filename: string;
     private readonly filenames: RegExp;
     private readonly minify: boolean;
     private readonly sourceMap: boolean;
+    private readonly manifest?: Manifest;
+    private readonly changeQueue?: ChangeQueue;
     private _watcher: FSWatcher | null = null;
     private constructor(
         entry: CompileEntry,
-        private readonly config: SassCompilerConfig,
         private readonly options?: CompilerOptions,
-        private readonly manifest?: Manifest
     ) {
         this.baseDir = entry.baseDir;
-        this.outputDir = entry.outputDir;
+        this.outputDir = entry.outputConfig.directory;
+        this.filename = entry.outputConfig.filename;
         this.filenames = entry.filenames;
+
+        if (entry.outputConfig?.manifest) {
+            this.manifest = Manifest.build(entry.outputConfig.manifest);
+            log(`Building manifest for entry at ${this.baseDir}`);
+        }
 
         if (entry.minify !== undefined) {
             this.minify = entry.minify;
@@ -50,6 +59,10 @@ export class EntryCompiler {
             this.sourceMap = entry.sourceMap;
         } else {
             this.sourceMap = !options?.watch;
+        }
+
+        if (this.options?.watch) {
+            this.changeQueue = new ChangeQueue();
         }
     }
 
@@ -97,7 +110,7 @@ export class EntryCompiler {
         if (this.options?.watch) {
             log(`Watching directory ${baseDir}...`);
 
-            this._watcher = chokidar.watch(baseDir, {
+            this._watcher = watch(baseDir, {
                 ignored: (file, _stats) => !!_stats && _stats.isFile() && !this.matchFile(path.basename(file)),
                 persistent: true,
                 interval: 100,
@@ -109,16 +122,34 @@ export class EntryCompiler {
                 switch (event) {
                     case 'add':
                     case 'change':
-                        await this.processDir(baseDir, outputDir).catch((err) => {
-                            console.error(err);
-                            return Promise.reject(new Error(`Error processing directory ${this.baseDir}`));
-                        });
+                        this.changeQueue?.push(new ChangeEvent(event, async () => {
+                            try {
+                                return await this.processDir(baseDir, outputDir);
+                            } catch (err) {
+                                console.error(err);
+                                return Promise.reject(new Error(`Error processing directory ${this.baseDir}`));
+                            }
+                        }))
                         break;
                     case 'unlink':
-                        await this.doUnlink(watchPath, baseDir, outputDir);
+                        this.changeQueue?.push(new ChangeEvent('unlink', async () => {
+                            try {
+                                return await this.doUnlink(watchPath, baseDir, outputDir);
+                            } catch (err) {
+                                console.error(err);
+                                return Promise.reject(new Error(`Error processing unlink for file ${watchPath}`));
+                            }
+                        }));
                         break;
                     case 'unlinkDir':
-                        await this.doUnlinkDir(watchPath, baseDir, outputDir);
+                        this.changeQueue?.push(new ChangeEvent('unlinkDir', async () => {
+                            try {
+                                return await this.doUnlinkDir(watchPath, baseDir, outputDir);
+                            } catch (err) {
+                                console.error(err);
+                                return Promise.reject(new Error(`Error processing unlinkDir for directory ${watchPath}`));
+                            }
+                        }));
                         break;
                 }
             });
@@ -242,7 +273,7 @@ export class EntryCompiler {
                 if (await isDir(fullPath)) {
                     await this.processOutputDir(path.join(inputDir, file), fullPath);
                 } else {
-                    const extension = this.config.output?.filename ? path.extname(this.config.output.filename) : '.css';
+                    const extension = this.filename ? path.extname(this.filename) : '.css';
 
                     if (file.endsWith(extension)) {
                         if (!await exists(inputDir)) {
@@ -331,9 +362,9 @@ export class EntryCompiler {
 
         let outputExtension = '.css';
         const variables: string[] = [];
-        if (this.config.output && this.config.output.filename) {
+        if (this.filename) {
             // Identify all template variables in the output filename
-            const match = this.config.output.filename.match(/\[([^\]]+)]/g);
+            const match = this.filename.match(/\[([^\]]+)]/g);
 
             if (match) {
                 match.forEach(variable => {
@@ -341,10 +372,10 @@ export class EntryCompiler {
                 });
             }
 
-            outputExtension = path.extname(this.config.output.filename) || outputExtension;
+            outputExtension = path.extname(this.filename) || outputExtension;
         }
 
-        let outputFilename: string = (this.config.output?.filename||filename).replace(ext, outputExtension);
+        let outputFilename: string = (this.filename||filename).replace(ext, outputExtension);
 
         variables.forEach(variable => {
             switch (variable) {
@@ -367,14 +398,14 @@ export class EntryCompiler {
         let baseName: string;
 
 
-        if (this.config.output?.filename) {
+        if (this.filename) {
             // Identify all template variables in the output filename
-            const match = this.config.output.filename.match(/\[([^\]]+)]/g);
+            const match = this.filename.match(/\[([^\]]+)]/g);
             const variables = match?.map(variable => variable.replace(/[[\]]/g, '')) || [];
 
             const filenameParts = file.split('.');
 
-            baseName = this.config.output.filename.replace(extension, '');
+            baseName = this.filename.replace(extension, '');
             variables.forEach((variable, idx) => {
                 switch (variable) {
                     case 'name':
