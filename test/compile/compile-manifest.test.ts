@@ -36,15 +36,15 @@ describe('Compiler', () => {
         await compiler.compile({
             entries: [{
                 baseDir: 'test/compile/scss',
-                outputDir: 'test/compile/css/v1',
+                outputConfig: {
+                    directory: 'test/compile/css/v1',
+                    filename: '[name].[hash].css',
+                    manifest: {
+                        path: 'test/compile'
+                    }
+                },
                 filenames: /\.scss$/
             }],
-            output: {
-                filename: '[name].[hash].css',
-                manifest: {
-                    path: 'test/compile'
-                }
-            }
         });
 
         await new Promise(resolve => setTimeout(resolve, 1000));

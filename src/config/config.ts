@@ -7,7 +7,10 @@ const CONFIG_FILE_NAME = 'sass-compiler.config.js';
 
 const DEFAULT_ENTRY: CompileEntry = {
     baseDir: '.',
-    outputDir: '.',
+    outputConfig: {
+        directory: '.',
+        filename: '[name].css',
+    },
     filenames: /^[a-zA-Z].+\.(scss|sass)$/
 }
 
@@ -15,14 +18,6 @@ const DEFAULT_CONFIG: SassCompilerConfig = {
     entries: [
         DEFAULT_ENTRY
     ],
-    output: {
-        filename: '[name].css'
-    }
-}
-
-type OutputConfig = {
-    filename: string;
-    manifest?: ManifestConfig;
 }
 
 export type ManifestConfig = {
@@ -32,12 +27,15 @@ export type ManifestConfig = {
 
 export interface SassCompilerConfig {
     entries: CompileEntry[];
-    output?: OutputConfig;
 }
 
 export interface CompileEntry {
     baseDir: string;
-    outputDir: string;
+    outputConfig: {
+        directory: string;
+        filename: string;
+        manifest?: ManifestConfig;
+    }
     filenames: RegExp;
     minify?: boolean;
     sourceMap?: boolean;
@@ -67,12 +65,17 @@ export const loader = async (options: CompilerOptions): Promise<SassCompilerConf
             config = DEFAULT_CONFIG;
         } else {
             userConfig.entries.forEach(entry => {
-                if (!entry.outputDir) {
-                    entry.outputDir = entry.baseDir || DEFAULT_ENTRY.outputDir;
-                }
                 if (!entry.baseDir) {
                     entry.baseDir = DEFAULT_ENTRY.baseDir;
                 }
+
+                if (!entry.outputConfig) {
+                    entry.outputConfig = {
+                        ...DEFAULT_ENTRY.outputConfig,
+                    };
+                    entry.outputConfig.directory = entry.baseDir || DEFAULT_ENTRY.outputConfig?.directory;
+                }
+
                 if (!entry.filenames) {
                     entry.filenames = DEFAULT_ENTRY.filenames;
                 }

@@ -2,7 +2,9 @@ module.exports = {
     entries: [
         {
             baseDir: '.',
-            outputDir: '.'
+            outputConfig: {
+                directory: '.',
+            }
         }
     ]
 }
