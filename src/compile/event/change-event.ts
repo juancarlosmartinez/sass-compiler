@@ -6,7 +6,7 @@ export class ChangeEvent {
 
     /* INSTANCE */
     public constructor(
-        private readonly event: TEvent,
+        public readonly event: TEvent,
         private readonly action: TAction,
     ) {
     }

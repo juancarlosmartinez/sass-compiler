@@ -1,5 +1,6 @@
 import {ChangeEvent} from "./change-event";
 import {setInterval} from "node:timers";
+import {log} from "../../util/log";
 
 export class ChangeQueue {
     /* STATIC */
@@ -14,10 +15,10 @@ export class ChangeQueue {
 
     private start(): void {
         this.interval = setInterval(() => {
-            console.log(`Processing change event queue, remaining events:, ${{ length: this.queue.length, processing: this.processing }}`);
             if (!this.processing && this.queue.length > 0) {
                 this.processing = true;
                 const event = this.queue.shift()!;
+                log(`Processing event ${event.event}`);
                 event.process()
                     .then(() => {})
                     .catch(() => {})
