@@ -32,4 +32,11 @@ export class ChangeQueue {
     public push(event: ChangeEvent): void {
         this.queue.push(event);
     }
+
+    public stop(): void {
+        if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+        }
+    }
 }

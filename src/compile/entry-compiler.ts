@@ -161,6 +161,7 @@ export class EntryCompiler {
      */
     public async stop(): Promise<void> {
         if (this._watcher) {
+            this.changeQueue?.stop();
             await this._watcher.close();
         }
     }
