@@ -12,7 +12,7 @@ describe("Tests for compiler configuration", () => {
 
         expect(config.entries.length).toBe(1);
         expect(config.entries[0].baseDir).toBe('.');
-        expect(config.entries[0].outputDir).toBe('.');
+        expect(config.entries[0].outputConfig.directory).toBe('.');
         expect(config.entries[0].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
     });
 
@@ -23,7 +23,7 @@ describe("Tests for compiler configuration", () => {
 
         expect(config.entries.length).toBe(1);
         expect(config.entries[0].baseDir).toBe('.');
-        expect(config.entries[0].outputDir).toBe('.');
+        expect(config.entries[0].outputConfig.directory).toBe('.');
         expect(config.entries[0].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
     });
 
@@ -34,7 +34,7 @@ describe("Tests for compiler configuration", () => {
 
         expect(config.entries.length).toBe(1);
         expect(config.entries[0].baseDir).toBe('.');
-        expect(config.entries[0].outputDir).toBe('.');
+        expect(config.entries[0].outputConfig.directory).toBe('.');
         expect(config.entries[0].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
     });
 
@@ -46,19 +46,19 @@ describe("Tests for compiler configuration", () => {
         expect(config.entries.sort().length).toBe(4);
 
         expect(config.entries[0].baseDir).toBe('test/fixtures');
-        expect(config.entries[0].outputDir).toBe('test/fixtures');
+        expect(config.entries[0].outputConfig.directory).toBe('test/fixtures');
         expect(config.entries[0].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
 
         expect(config.entries[1].baseDir).toBe('.');
-        expect(config.entries[1].outputDir).toBe('test/css');
+        expect(config.entries[1].outputConfig.directory).toBe('test/css');
         expect(config.entries[1].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
 
         expect(config.entries[2].baseDir).toBe('test/fixtures');
-        expect(config.entries[2].outputDir).toBe('test/css');
+        expect(config.entries[2].outputConfig.directory).toBe('test/css');
         expect(config.entries[2].filenames.source).toBe('^[A-Z].+\\.(scss|sass)$');
 
         expect(config.entries[3].baseDir).toBe('.');
-        expect(config.entries[3].outputDir).toBe('.');
+        expect(config.entries[3].outputConfig.directory).toBe('.');
         expect(config.entries[3].filenames.source).toBe('^[a-zA-Z].+\\.(scss|sass)$');
     });
 
